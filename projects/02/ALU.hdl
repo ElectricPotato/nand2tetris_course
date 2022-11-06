@@ -26,6 +26,46 @@
 // if (out == 0) set zr = 1
 // if (out < 0) set ng = 1
 
+/* Verilog version
+module ALU(
+    input [15:0] x,
+    input [15:0] y,
+
+    input zx,
+    input nx,
+    input zy,
+    input ny,
+    input f,
+    input no,
+
+    output logic [15:0] out,
+    output logic zr,
+    output logic ng
+);
+    logic [15:0] int_x;
+    logic [15:0] int_y;
+    logic [15:0] int_out;
+
+    always@* {
+        int_x = x;
+        int_y = y;
+
+        if (zx  == 1) int_x   = 0             // 16-bit constant
+        if (nx  == 1) int_x   = !int_x        // bitwise not
+        if (zy  == 1) int_y   = 0             // 16-bit constant
+        if (ny  == 1) int_y   = !int_y        // bitwise not
+        if (f   == 1) int_out = int_x + int_y // integer 2's complement addition
+        if (f   == 0) int_out = int_x & int_y // bitwise and
+        if (no  == 1) int_out = !int_out      // bitwise not
+
+        out = int_out;
+
+        zr = out == 0;
+        ng = out <  0;
+    }
+endmodule
+*/
+
 CHIP ALU {
     IN  
         x[16], y[16],  // 16-bit inputs        
@@ -42,5 +82,21 @@ CHIP ALU {
         ng; // 1 if (out < 0),  0 otherwise
 
     PARTS:
-   // Put you code here:
+    Mux16(a=x, b=false, sel=zx, out=intx0); //intermediate x value
+    Not16(in=intx0, out=notintx0);
+    Mux16(a=intx0, b=notintx0, sel=nx, out=intx1);
+
+    Mux16(a=y, b=false, sel=zy, out=inty0); //intermediate y value
+    Not16(in=inty0, out=notinty0);
+    Mux16(a=inty0, b=notinty0, sel=ny, out=inty1);
+
+    Add16(a=intx1, b=inty1, out=addxy);
+    And16(a=intx1, b=inty1, out=andxy);
+    Mux16(a=andxy, b=addxy, sel=f, out=intresult0);
+
+    Not16(in=intresult0, out=notintresult0);
+    Mux16(a=intresult0, b=notintresult0, sel=no, out=intout, out=out, out[15]=ng);
+    
+    Or16Way(in=intout, out=notzr);
+    Not(in=notzr, out=zr);
 }

@@ -69,19 +69,29 @@ class CodeGen:
         return ''
         
 class SymbolTable:
-    def __init__(self) -> None:
+    def __init__(self, baseAddress) -> None:
         #Creates a new empty symbol table.
-        pass
+        self.baseAddress = baseAddress
+        self.table = {
+            "SP"        : 0x0000,
+            "LCL"       : 0x0001,
+            "ARG"       : 0x0002,
+            "THIS"      : 0x0003,
+            "THAT"      : 0x0004,
+            "SCREEN"    : 0x4000,
+            "KBD"       : 0x6000,
+        }
+        self.table.update({f"R{i}": i for i in range(16)}) #add R0-R15 mnemonics
 
-    def addEntry(symbol: str, address: int):
+    def addEntry(self, symbol: str, address: int):
         #Adds the pair (symbol, address) to the table.
-        return
+        self.table[symbol] = address
 
-    def contains(symbol: str) -> bool:
+    def contains(self, symbol: str) -> bool:
         #Does the symbol table contain the given symbol?
-        return False
+        return symbol in self.table
     
-    def GetAddress(symbol: str) -> int:
+    def GetAddress(self, symbol: str) -> int:
         #Returns the address associated with the symbol.
         return self.table[symbol]
 

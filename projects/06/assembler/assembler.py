@@ -24,6 +24,10 @@ class Parser:
            Initially there is no current command.'''
         return
 
+    def returnToStart(self) -> None:
+        '''Goes back to the beggining of the file to start parsing it from the start'''
+        return
+
     def commandType(self) -> CommandType:
         '''Returns the type of the current command:
             - A_COMMAND for @Xxx where Xxx is either a symbol or a decimal number
@@ -79,22 +83,55 @@ class SymbolTable:
     
     def GetAddress(symbol: str) -> int:
         #Returns the address associated with the symbol.
-        return 0
+        return self.table[symbol]
 
-#Symbol-less assembly programs
-inputFileName = "../add/Add.asm"
-#inputFileName = "../max/MaxL.asm"
-#inputFileName = "../pong/PongL.asm"
-#inputFileName = "../rect/RectL.asm"
+def assemble(inputFileName, outputFileName):
+    p = Parser(inputFileName)
+    symbolTable = SymbolTable()
 
-#programs with symbols
-#inputFileName = "../max/Max.asm"
-#inputFileName = "../pong/Pong.asm"
-#inputFileName = "../rect/Rect.asm"
+    #1st pass - populate the symbol table
+    while(p.hasMoreCommands()):
+        p.advance()
+
+        commandType = p.commandType()
+        if(commandType == CommandType.L_COMMAND):
+            pass
 
 
-p = Parser(inputFileName)
-symbolTable = SymbolTable()
+    #2nd pass
+    p.returnToStart()
+    machineCode = []
 
-while(p.hasMoreCommands()):
-    p.advance()
+    while(p.hasMoreCommands()):
+        p.advance()
+
+        commandType = p.commandType()
+        if(commandType == CommandType.A_COMMAND):
+            machineInstruction = ''
+
+        elif(commandType == CommandType.C_COMMAND):
+            machineInstruction = \
+                '111' \
+                + CodeGen.dest(p.dest()) \
+                + CodeGen.comp(p.comp()) \
+                + CodeGen.jump(p.jump())
+
+            machineCode.append(machineInstruction)
+
+    with open(outputFileName, 'w') as f:
+        f.writelines(machineCode)
+
+
+if(__name__ == "__main__"):
+    #Symbol-less assembly programs
+    inputFileName = "../add/Add.asm"
+    #inputFileName = "../max/MaxL.asm"
+    #inputFileName = "../pong/PongL.asm"
+    #inputFileName = "../rect/RectL.asm"
+
+    #programs with symbols
+    #inputFileName = "../max/Max.asm"
+    #inputFileName = "../pong/Pong.asm"
+    #inputFileName = "../rect/Rect.asm"
+
+    assemble(inputFileName, inputFileName + ".o")

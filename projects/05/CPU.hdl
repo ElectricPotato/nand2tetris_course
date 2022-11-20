@@ -87,7 +87,7 @@ CHIP CPU {
 
     Mux16(a=outALU, b=instruction, sel=aInstr, out=inA);
     ARegister(in=inA, load=loadA, out=outA, out[0..14]=addressM); //A
-    ARegister(in=outALU, load=loadD, out=outD);            //D
+    DRegister(in=outALU, load=loadD, out=outD);            //D
     Mux16(a=outA, b=inM, sel=instruction[12] /*a field of c-instr*/, out=outAM);
     PC(in=outA, load=jmp, inc=incPC, reset=reset, out[0..14]=pc);
 

@@ -27,5 +27,37 @@ CHIP Memory {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    DMux(in=load,     sel=address[14], a=ramLoad, b=dmux1out);
+    DMux(in=dmux1out, sel=address[13], a=screenLoad /*, b=keyboardLoad*/);
+
+    RAM16K(in=in, load=ramLoad, address=address[0..13], out=ramOut);
+    Keyboard(out=keyboardOut);
+    Screen(in=in, load=screenLoad, address=address[0..12], out=screenOut);
+
+    Mux16(a=screenOut, b=keyboardOut, sel=address[13], out=mux1out);
+    Mux16(a=ramOut, b=mux1out, sel=address[14], out=out);
 }
+
+/*
+Memory map:
+0x0000-0x3FFF 16K of RAM
+0x4000-0x5FFF 8K of Screen memory map
+0x6000        Keyboard
+0x6001-0x8000 Invalid
+
+0000000000000000
+0011111111111111
+
+0100000000000000
+0101111111111111
+
+0110000000000000
+
+upper 3 bits:
+000-001 : memory
+010 : screen
+011 : keyboard
+
+bit[14] ? (bit[13] ? keyboard : screen) : memory
+
+*/

@@ -25,6 +25,39 @@
  * than to the address resulting from executing the current instruction. 
  */
 
+/*
+C instr : 111accccccdddjjj
+A instr : 0vvvvvvvvvvvvvvv //set A to value v
+
+
+instruction[15]   instruction type
+
+          FEDCBA9876543210
+C instr : 111accccccdddjjj
+instruction[0..2]  j
+instruction[3..5]  d
+    instruction[3]  loadM
+    instruction[4]  loadD
+    instruction[5]  loadA
+instruction[6..11] c
+instruction[12]    a
+
+A instr : 0vvvvvvvvvvvvvvv
+instruction[0..14] v
+*/
+
+/*
+//usefull for renaming signals
+CHIP Buf {
+    IN in;
+    OUT out;
+
+    PARTS:
+    Not(in=in, out=notIn);
+    Not(in=notIn, out=out);
+}
+*/
+
 CHIP CPU {
 
     IN  inM[16],         // M value input  (M = contents of RAM[A])
@@ -39,5 +72,75 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+    /*wires:
+        jmp, incPC
+        loadA, loadD
+        selAM
+        aInstr
+
+        zr, ng
+    */
+    And(a=instruction[3], b=instruction[15], out=writeM); //'dest' field in C instruction
+    And(a=instruction[4], b=instruction[15], out=loadD);
+    Not(in=instruction[15], out=aInstr);
+    Or(a=instruction[5], b=aInstr, out=loadA);
+
+    Mux16(a=outALU, b=instruction, sel=aInstr, out=inA);
+    ARegister(in=inA, load=loadA, out=outA, out[0..14]=addressM); //A
+    ARegister(in=outALU, load=loadD, out=outD);            //D
+    Mux16(a=outA, b=inM, sel=instruction[12] /*a field of c-instr*/, out=outAM);
+    PC(in=outA, load=jmp, inc=incPC, reset=reset, out[0..14]=pc);
+
+    ALU(
+        x=outD,
+        y=outAM,
+        zx=instruction[11], // Zero the x input
+        nx=instruction[10], // Negate the x input
+        zy=instruction[9], // Zero the y input
+        ny=instruction[8], // Negate the y input
+        f=instruction[7],  // Function code: 1 for add, 0 for and
+        no=instruction[6], // Negate the out output
+
+        out=outALU, // 16-bit output
+        out=outM,
+        zr=zr, // 1 if out=0, 0 otherwise
+        ng=ng // 1 if out<0, 0 otherwise
+    );
+
+    /*
+    Conditional jump logic
+    0 0 0 null No jump         | 0
+    0 0 1 JGT If out >  0 jump | !(zr | ng)
+    0 1 0 JEQ If out =  0 jump | zr
+    0 1 1 JGE If out >= 0 jump | !ng
+    1 0 0 JLT If out <  0 jump | ng
+    1 0 1 JNE If out != 0 jump | !zr
+    1 1 0 JLE If out <= 0 jump | zr | ng
+    1 1 1 JMP Jump             | 1
+    */
+
+    Or(a=zr, b=ng, out=zrORng);
+    Not(in=zrORng, out=zrNORng);
+    Not(in=zr, out=NOTzr);
+    Not(in=ng, out=NOTng);
+
+    Mux8Way16(
+        a[0]=false,
+        b[0]=zrNORng,
+        c[0]=zr,
+        d[0]=NOTng,
+        e[0]=ng,
+        f[0]=NOTzr,
+        g[0]=zrORng,
+        h[0]=true,
+
+        sel=instruction[0..2],
+        out[0]=jmpIntermediate
+    );
+    And(a=jmpIntermediate, b=instruction[15], out=jmp);
+    Not(in=jmp, out=incPC);
 }
+
+
+
+

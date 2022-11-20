@@ -19,5 +19,15 @@ CHIP Computer {
     IN reset;
 
     PARTS:
-    // Put your code here:
+    CPU(inM=inM, instruction=instruction, reset=reset, outM=outM, writeM=writeM, addressM=addressM, pc=pc);
+    Memory(in=outM, load=writeM, address=addressM, out=inM);
+    ROM32K(address=pc, out=instruction);
 }
+
+/*
+Memory map:
+0x0000-0x3999 16K of RAM
+0x4000-0x5FFF 8K of Screen memory map
+0x6000        Keyboard
+0x6001-0x8000 Invalid
+*/
